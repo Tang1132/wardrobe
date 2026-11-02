@@ -3,9 +3,9 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Heart, Plus, Search, Shirt, SlidersHorizontal, X } from 'lucide-react'
+import { Heart, Loader2, Plus, Search, Shirt, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { CATEGORIES, SEASONS } from '@/lib/constants'
+import { BUCKET, CATEGORIES, SEASONS } from '@/lib/constants'
 import { cn, formatPrice, publicImageUrl } from '@/lib/utils'
 import type { Clothing } from '@/lib/types'
 
@@ -41,7 +41,17 @@ function FilterRow({
   )
 }
 
-function ClothingCard({ item, onFavorite }: { item: Clothing; onFavorite: () => void }) {
+function ClothingCard({
+  item,
+  onFavorite,
+  onDelete,
+  deleting,
+}: {
+  item: Clothing
+  onFavorite: () => void
+  onDelete: () => void
+  deleting: boolean
+}) {
   return (
     <div className="group relative overflow-hidden rounded-3xl border border-ink/5 bg-white/85 shadow-card">
       <Link href={`/clothes/${item.id}/edit`} className="block">
@@ -78,6 +88,16 @@ function ClothingCard({ item, onFavorite }: { item: Clothing; onFavorite: () => 
       >
         <Heart size={16} className={item.is_favorite ? 'fill-clay text-clay' : ''} />
       </button>
+
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={deleting}
+        aria-label="删除衣物"
+        className="absolute left-2.5 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-cream/85 text-ink/50 backdrop-blur transition hover:text-red-500 disabled:opacity-60"
+      >
+        {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+      </button>
     </div>
   )
 }
@@ -92,6 +112,7 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const colors = useMemo(
     () =>
@@ -159,6 +180,28 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
       setItems((prev) =>
         prev.map((entry) => (entry.id === item.id ? { ...entry, is_favorite: !next } : entry)),
       )
+    }
+  }
+
+  async function deleteItem(item: Clothing) {
+    if (!window.confirm(`确定删除「${item.name}」吗？对应的图片也会一并删除。`)) return
+
+    setDeletingId(item.id)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      if (item.image_path) {
+        await supabase.storage.from(BUCKET).remove([item.image_path])
+      }
+      const { error: deleteError } = await supabase.from('clothes').delete().eq('id', item.id)
+      if (deleteError) throw deleteError
+
+      setItems((prev) => prev.filter((entry) => entry.id !== item.id))
+    } catch {
+      setError('删除失败，请稍后重试')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -262,7 +305,13 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {filtered.map((item) => (
-            <ClothingCard key={item.id} item={item} onFavorite={() => toggleFavorite(item)} />
+            <ClothingCard
+              key={item.id}
+              item={item}
+              onFavorite={() => toggleFavorite(item)}
+              onDelete={() => deleteItem(item)}
+              deleting={deletingId === item.id}
+            />
           ))}
         </div>
       )}
