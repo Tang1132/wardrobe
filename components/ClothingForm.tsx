@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Heart, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { BUCKET, CATEGORIES, SEASONS } from '@/lib/constants'
-import { compressImage, extensionOf } from '@/lib/image'
+import { compressImage, extensionOf, makeThumbnail } from '@/lib/image'
 import { cn, parseTags, publicImageUrl } from '@/lib/utils'
 import type { Category, Clothing, Season } from '@/lib/types'
 
@@ -79,20 +79,38 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
       if (!user) throw new Error('登录状态已失效，请重新登录')
 
       let imagePath = initial?.image_path ?? null
+      let thumbPath = initial?.thumb_path ?? null
 
       if (file) {
         const blob = await compressImage(file)
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensionOf(blob)}`
+        const thumb = await makeThumbnail(blob)
+        const base = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const path = `${base}.${extensionOf(blob)}`
+        const nextThumbPath = `${base}-thumb.jpg`
+
         const { error: uploadError } = await supabase.storage
           .from(BUCKET)
           .upload(path, blob, { contentType: blob.type, upsert: false })
         if (uploadError) throw uploadError
 
-        if (imagePath) await supabase.storage.from(BUCKET).remove([imagePath])
+        const { error: thumbError } = await supabase.storage
+          .from(BUCKET)
+          .upload(nextThumbPath, thumb, { contentType: 'image/jpeg', upsert: false })
+        if (thumbError) {
+          await supabase.storage.from(BUCKET).remove([path])
+          throw thumbError
+        }
+
+        const stale = [imagePath, thumbPath].filter((value): value is string => Boolean(value))
+        if (stale.length > 0) await supabase.storage.from(BUCKET).remove(stale)
+
         imagePath = path
+        thumbPath = nextThumbPath
       } else if (removeImage && initial?.image_path) {
-        await supabase.storage.from(BUCKET).remove([initial.image_path])
+        const stale = [initial.image_path, initial.thumb_path].filter((value): value is string => Boolean(value))
+        if (stale.length > 0) await supabase.storage.from(BUCKET).remove(stale)
         imagePath = null
+        thumbPath = null
       }
 
       const payload = {
@@ -107,6 +125,7 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
         notes: notes.trim() || null,
         is_favorite: favorite,
         image_path: imagePath,
+        thumb_path: thumbPath,
       }
 
       if (initial) {
@@ -134,8 +153,11 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
 
     try {
       const supabase = createClient()
-      if (initial.image_path) {
-        await supabase.storage.from(BUCKET).remove([initial.image_path])
+      const stale = [initial.image_path, initial.thumb_path].filter(
+        (value): value is string => Boolean(value),
+      )
+      if (stale.length > 0) {
+        await supabase.storage.from(BUCKET).remove(stale)
       }
       const { error: deleteError } = await supabase.from('clothes').delete().eq('id', initial.id)
       if (deleteError) throw deleteError

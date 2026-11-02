@@ -14,6 +14,7 @@ export interface Clothing {
   tags: string[]
   notes: string | null
   image_path: string | null
+  thumb_path: string | null
   is_favorite: boolean
   created_at: string
 }

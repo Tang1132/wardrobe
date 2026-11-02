@@ -15,20 +15,23 @@ function Collage({ items, large = false }: { items: Clothing[]; large?: boolean 
 
   return (
     <div className={cn('relative grid gap-0.5 overflow-hidden bg-sand', multiple ? 'grid-cols-2' : 'grid-cols-1')}>
-      {shown.map((item) => (
-        <div
-          key={item.id}
-          className={cn('relative overflow-hidden bg-sand', large ? 'aspect-[4/5]' : multiple ? 'aspect-square' : 'aspect-[4/3]')}
-        >
-          {item.image_path ? (
-            <img src={publicImageUrl(item.image_path)} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
-          ) : (
-            <div className="grid h-full place-items-center text-muted/40">
-              <Shirt size={large ? 32 : 22} />
-            </div>
-          )}
-        </div>
-      ))}
+      {shown.map((item) => {
+        const src = publicImageUrl(large ? item.image_path : (item.thumb_path ?? item.image_path))
+        return (
+          <div
+            key={item.id}
+            className={cn('relative overflow-hidden bg-sand', large ? 'aspect-[4/5]' : multiple ? 'aspect-square' : 'aspect-[4/3]')}
+          >
+            {src ? (
+              <img src={src} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center text-muted/40">
+                <Shirt size={large ? 32 : 22} />
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {items.length > 4 && (
         <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 text-[10px] text-cream">
@@ -392,18 +395,16 @@ export default function OutfitsClient({
                           )}
                         >
                           <span className="block aspect-square overflow-hidden">
-                            {item.image_path ? (
-                              <img
-                                src={publicImageUrl(item.image_path)}
-                                alt={item.name}
-                                loading="lazy"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <span className="grid h-full place-items-center text-muted/40">
-                                <Shirt size={18} />
-                              </span>
-                            )}
+                            {(() => {
+                              const src = publicImageUrl(item.thumb_path ?? item.image_path)
+                              return src ? (
+                                <img src={src} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
+                              ) : (
+                                <span className="grid h-full place-items-center text-muted/40">
+                                  <Shirt size={18} />
+                                </span>
+                              )
+                            })()}
                           </span>
                           <span className="block truncate px-2 py-1.5 text-left text-[10px] text-ink/70">
                             {item.name}
@@ -499,13 +500,16 @@ export default function OutfitsClient({
               {preview.items.map((item) => (
                 <li key={item.id} className="flex items-center gap-3 px-3 py-2.5">
                   <span className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-sand">
-                    {item.image_path ? (
-                      <img src={publicImageUrl(item.image_path)} alt={item.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="grid h-full place-items-center text-muted/40">
-                        <Shirt size={14} />
-                      </span>
-                    )}
+                    {(() => {
+                      const src = publicImageUrl(item.thumb_path ?? item.image_path)
+                      return src ? (
+                        <img src={src} alt={item.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="grid h-full place-items-center text-muted/40">
+                          <Shirt size={14} />
+                        </span>
+                      )
+                    })()}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{item.name}</span>

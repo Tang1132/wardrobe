@@ -40,3 +40,37 @@ export function extensionOf(blob: Blob) {
   if (blob.type === 'image/webp') return 'webp'
   return 'jpg'
 }
+
+/** 生成列表用缩略图：长边压到 maxSize，固定 JPEG，显著降低列表带宽 */
+export async function makeThumbnail(source: Blob, maxSize = 400, quality = 0.8): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(source)
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height))
+
+    if (scale === 1 && source.size <= 80_000) {
+      bitmap.close()
+      return source
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+
+    const context = canvas.getContext('2d')
+    if (!context) {
+      bitmap.close()
+      return source
+    }
+
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    bitmap.close()
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality),
+    )
+
+    return blob ?? source
+  } catch {
+    return source
+  }
+}

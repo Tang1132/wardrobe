@@ -24,9 +24,13 @@ create table if not exists public.clothes (
   tags         text[] not null default '{}',
   notes        text,
   image_path   text,
+  thumb_path   text,
   is_favorite  boolean not null default false,
   created_at   timestamptz not null default now()
 );
+
+-- 兼容旧库：为已存在的 clothes 表补充缩略图字段
+alter table public.clothes add column if not exists thumb_path text;
 
 create index if not exists clothes_user_id_idx on public.clothes (user_id);
 create index if not exists clothes_category_idx on public.clothes (user_id, category);

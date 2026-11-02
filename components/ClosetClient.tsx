@@ -52,13 +52,15 @@ function ClothingCard({
   onDelete: () => void
   deleting: boolean
 }) {
+  const listImage = publicImageUrl(item.thumb_path ?? item.image_path)
+
   return (
     <div className="group relative overflow-hidden rounded-3xl border border-ink/5 bg-white/85 shadow-card">
       <Link href={`/clothes/${item.id}/edit`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden bg-sand">
-          {item.image_path ? (
+          {listImage ? (
             <img
-              src={publicImageUrl(item.image_path)}
+              src={listImage}
               alt={item.name}
               loading="lazy"
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
@@ -191,8 +193,9 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
 
     try {
       const supabase = createClient()
-      if (item.image_path) {
-        await supabase.storage.from(BUCKET).remove([item.image_path])
+      const stale = [item.image_path, item.thumb_path].filter((value): value is string => Boolean(value))
+      if (stale.length > 0) {
+        await supabase.storage.from(BUCKET).remove(stale)
       }
       const { error: deleteError } = await supabase.from('clothes').delete().eq('id', item.id)
       if (deleteError) throw deleteError
