@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #f7f3ec;
+  background-image:
+    radial-gradient(60rem 40rem at 110% -10%, rgba(176, 106, 78, 0.08), transparent 60%),
+    radial-gradient(50rem 35rem at -10% 15%, rgba(126, 139, 111, 0.1), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: #e6c9ba;
+  color: #2b2622;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  .field-label {
+    @apply mb-1.5 block text-xs font-medium tracking-wide text-muted;
+  }
+
+  .text-input {
+    @apply w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm text-ink outline-none transition placeholder:text-muted/60 focus:border-clay/50 focus:ring-4 focus:ring-clay/10;
+  }
+
+  .chip {
+    @apply shrink-0 rounded-full border border-ink/10 bg-white/70 px-3.5 py-1.5 text-xs text-ink/70 transition hover:border-clay/40 hover:text-clay;
+  }
+
+  .chip-active {
+    @apply border-clay bg-clay text-cream hover:border-clay hover:text-cream;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-clay px-5 py-3 text-sm font-medium text-cream shadow-soft transition hover:bg-clay-dark disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/10 bg-white/70 px-4 py-2.5 text-sm text-ink/70 transition hover:border-ink/25 hover:text-ink;
+  }
+
+  .card {
+    @apply rounded-3xl border border-ink/5 bg-white/85 shadow-card;
+  }
+}
