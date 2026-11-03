@@ -15,6 +15,7 @@ create table if not exists public.clothes (
   name         text not null,
   category     text not null default '其他',
   seasons      text[] not null default '{四季}',
+  owner        text not null default '老婆',
   color        text,
   notes        text,
   image_path   text,
@@ -26,6 +27,7 @@ create table if not exists public.clothes (
 -- 兼容旧库：补充缩略图与多季节字段
 alter table public.clothes add column if not exists thumb_path text;
 alter table public.clothes add column if not exists seasons text[] not null default '{四季}';
+alter table public.clothes add column if not exists owner text not null default '老婆';
 
 -- 旧库迁移：把单季节 season 转成 seasons 数组后删除旧列
 do $$
@@ -54,6 +56,11 @@ alter table public.clothes add constraint clothes_category_check
 alter table public.clothes drop constraint if exists clothes_seasons_check;
 alter table public.clothes add constraint clothes_seasons_check
   check (seasons <@ array['春', '夏', '秋', '冬', '四季']::text[]);
+
+-- 约束：所属人取值合法
+alter table public.clothes drop constraint if exists clothes_owner_check;
+alter table public.clothes add constraint clothes_owner_check
+  check (owner in ('老公', '老婆'));
 
 create index if not exists clothes_user_id_idx on public.clothes (user_id);
 create index if not exists clothes_category_idx on public.clothes (user_id, category);

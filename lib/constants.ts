@@ -1,4 +1,4 @@
-import type { Category, Season } from './types'
+import type { Category, Owner, Season } from './types'
 
 /** Storage Bucket 名称（与 SQL 脚本保持一致） */
 export const BUCKET = 'clothing-images'
@@ -16,5 +16,6 @@ export const CATEGORIES: Category[] = [
 ]
 
 export const SEASONS: Season[] = ['春', '夏', '秋', '冬', '四季']
+export const OWNERS: Owner[] = ['老公', '老婆']
 
 export const OUTFIT_TAG_SUGGESTIONS = ['工作', '休闲', '约会', '运动', '旅行']

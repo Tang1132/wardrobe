@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crop, Heart, ImagePlus, Loader2, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { BUCKET, CATEGORIES, SEASONS } from '@/lib/constants'
+import { BUCKET, CATEGORIES, OWNERS, SEASONS } from '@/lib/constants'
 import { compressImage, extensionOf, makeThumbnail } from '@/lib/image'
 import { cn, publicImageUrl } from '@/lib/utils'
 import ImageEditor from '@/components/ImageEditor'
-import type { Category, Clothing, Season } from '@/lib/types'
+import type { Category, Clothing, Owner, Season } from '@/lib/types'
 
 export default function ClothingForm({ initial }: { initial?: Clothing }) {
   const router = useRouter()
@@ -17,6 +17,7 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
 
   const [name, setName] = useState(initial?.name ?? '')
   const [category, setCategory] = useState<Category>(initial?.category ?? '上衣')
+  const [owner, setOwner] = useState<Owner>(initial?.owner ?? '老婆')
   const [seasons, setSeasons] = useState<Season[]>(
     initial?.seasons?.length ? initial.seasons : ['四季'],
   )
@@ -148,6 +149,7 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
       const payload = {
         name: name.trim(),
         category,
+        owner,
         seasons,
         color: color.trim() || null,
         notes: notes.trim() || null,
@@ -279,7 +281,22 @@ export default function ClothingForm({ initial }: { initial?: Clothing }) {
               />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block">
+                <span className="field-label">所属人</span>
+                <select
+                  value={owner}
+                  onChange={(event) => setOwner(event.target.value as Owner)}
+                  className="text-input"
+                >
+                  {OWNERS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <label className="block">
                 <span className="field-label">分类</span>
                 <select

@@ -9,6 +9,7 @@ export type Category =
   | '配饰'
   | '其他'
 export type Season = '春' | '夏' | '秋' | '冬' | '四季'
+export type Owner = '老公' | '老婆'
 
 export interface Clothing {
   id: string
@@ -16,6 +17,7 @@ export interface Clothing {
   name: string
   category: Category
   seasons: Season[]
+  owner: Owner
   color: string | null
   notes: string | null
   image_path: string | null

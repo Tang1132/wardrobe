@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Heart, Loader2, Maximize2, Plus, Search, Shirt, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { BUCKET, CATEGORIES, SEASONS } from '@/lib/constants'
+import { BUCKET, CATEGORIES, OWNERS, SEASONS } from '@/lib/constants'
 import { cn, publicImageUrl } from '@/lib/utils'
 import ImageLightbox from '@/components/ImageLightbox'
-import type { Clothing, Season } from '@/lib/types'
+import type { Clothing, Owner, Season } from '@/lib/types'
 
 const ALL = '全部'
 
@@ -77,7 +77,7 @@ function ClothingCard({
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/60 via-ink/15 to-transparent p-3 pt-10 text-cream">
             <p className="truncate font-serif text-sm">{item.name}</p>
             <p className="mt-0.5 truncate text-[11px] text-cream/75">
-              {item.category}
+              {item.owner} · {item.category}
               {item.color ? ` · ${item.color}` : ''}
             </p>
           </div>
@@ -119,6 +119,7 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
   const [items, setItems] = useState<Clothing[]>(clothes)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState(ALL)
+  const [owner, setOwner] = useState(ALL)
   const [season, setSeason] = useState(ALL)
   const [color, setColor] = useState(ALL)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
@@ -140,12 +141,13 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
 
     return items.filter((item) => {
       if (category !== ALL && item.category !== category) return false
+      if (owner !== ALL && item.owner !== (owner as Owner)) return false
       if (season !== ALL && !(item.seasons ?? []).includes(season as Season)) return false
       if (color !== ALL && (item.color ?? '').trim() !== color) return false
       if (favoriteOnly && !item.is_favorite) return false
 
       if (keyword) {
-        const haystack = [item.name, item.color, item.category, ...(item.seasons ?? []), item.notes]
+        const haystack = [item.name, item.color, item.category, item.owner, ...(item.seasons ?? []), item.notes]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -154,12 +156,14 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
 
       return true
     })
-  }, [items, query, category, season, color, favoriteOnly])
+  }, [items, query, category, owner, season, color, favoriteOnly])
 
-  const filtersActive = category !== ALL || season !== ALL || color !== ALL || favoriteOnly || query !== ''
+  const filtersActive =
+    category !== ALL || owner !== ALL || season !== ALL || color !== ALL || favoriteOnly || query !== ''
 
   function resetFilters() {
     setCategory(ALL)
+    setOwner(ALL)
     setSeason(ALL)
     setColor(ALL)
     setFavoriteOnly(false)
@@ -254,6 +258,7 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
 
       {showMore && (
         <div className="space-y-3 rounded-3xl border border-ink/5 bg-white/60 p-4">
+          <FilterRow label="所属人" options={[ALL, ...OWNERS]} value={owner} onChange={setOwner} />
           <FilterRow label="季节" options={[ALL, ...SEASONS]} value={season} onChange={setSeason} />
           {colors.length > 0 && (
             <FilterRow label="颜色" options={[ALL, ...colors]} value={color} onChange={setColor} />
