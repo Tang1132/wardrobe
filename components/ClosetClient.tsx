@@ -3,11 +3,12 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { Heart, Loader2, Plus, Search, Shirt, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { Heart, Loader2, Maximize2, Plus, Search, Shirt, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { BUCKET, CATEGORIES, SEASONS } from '@/lib/constants'
-import { cn, formatPrice, publicImageUrl } from '@/lib/utils'
-import type { Clothing } from '@/lib/types'
+import { cn, publicImageUrl } from '@/lib/utils'
+import ImageLightbox from '@/components/ImageLightbox'
+import type { Clothing, Season } from '@/lib/types'
 
 const ALL = '全部'
 
@@ -44,11 +45,13 @@ function FilterRow({
 function ClothingCard({
   item,
   onFavorite,
+  onView,
   onDelete,
   deleting,
 }: {
   item: Clothing
   onFavorite: () => void
+  onView: () => void
   onDelete: () => void
   deleting: boolean
 }) {
@@ -76,11 +79,19 @@ function ClothingCard({
             <p className="mt-0.5 truncate text-[11px] text-cream/75">
               {item.category}
               {item.color ? ` · ${item.color}` : ''}
-              {item.price ? ` · ${formatPrice(item.price)}` : ''}
             </p>
           </div>
         </div>
       </Link>
+
+      <button
+        type="button"
+        onClick={onView}
+        aria-label="查看大图"
+        className="absolute right-14 top-2.5 grid h-9 w-9 place-items-center rounded-full bg-cream/85 text-ink/50 backdrop-blur transition hover:text-clay"
+      >
+        <Maximize2 size={15} />
+      </button>
 
       <button
         type="button"
@@ -110,11 +121,11 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
   const [category, setCategory] = useState(ALL)
   const [season, setSeason] = useState(ALL)
   const [color, setColor] = useState(ALL)
-  const [tag, setTag] = useState(ALL)
   const [favoriteOnly, setFavoriteOnly] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<Clothing | null>(null)
 
   const colors = useMemo(
     () =>
@@ -124,28 +135,17 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
     [items],
   )
 
-  const tags = useMemo(() => Array.from(new Set(items.flatMap((item) => item.tags ?? []))), [items])
-
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase()
 
     return items.filter((item) => {
       if (category !== ALL && item.category !== category) return false
-      if (season !== ALL && item.season !== season) return false
+      if (season !== ALL && !(item.seasons ?? []).includes(season as Season)) return false
       if (color !== ALL && (item.color ?? '').trim() !== color) return false
-      if (tag !== ALL && !(item.tags ?? []).includes(tag)) return false
       if (favoriteOnly && !item.is_favorite) return false
 
       if (keyword) {
-        const haystack = [
-          item.name,
-          item.brand,
-          item.color,
-          item.category,
-          item.season,
-          item.notes,
-          ...(item.tags ?? []),
-        ]
+        const haystack = [item.name, item.color, item.category, ...(item.seasons ?? []), item.notes]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -154,16 +154,14 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
 
       return true
     })
-  }, [items, query, category, season, color, tag, favoriteOnly])
+  }, [items, query, category, season, color, favoriteOnly])
 
-  const filtersActive =
-    category !== ALL || season !== ALL || color !== ALL || tag !== ALL || favoriteOnly || query !== ''
+  const filtersActive = category !== ALL || season !== ALL || color !== ALL || favoriteOnly || query !== ''
 
   function resetFilters() {
     setCategory(ALL)
     setSeason(ALL)
     setColor(ALL)
-    setTag(ALL)
     setFavoriteOnly(false)
     setQuery('')
   }
@@ -216,7 +214,7 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索名称、品牌、颜色或标签"
+            placeholder="搜索名称、颜色或备注"
             className="w-full rounded-full border border-ink/10 bg-white/80 py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-muted/60 focus:border-clay/50 focus:ring-4 focus:ring-clay/10"
           />
         </label>
@@ -260,7 +258,6 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
           {colors.length > 0 && (
             <FilterRow label="颜色" options={[ALL, ...colors]} value={color} onChange={setColor} />
           )}
-          {tags.length > 0 && <FilterRow label="标签" options={[ALL, ...tags]} value={tag} onChange={setTag} />}
           {filtersActive && (
             <button
               type="button"
@@ -312,11 +309,20 @@ export default function ClosetClient({ clothes }: { clothes: Clothing[] }) {
               key={item.id}
               item={item}
               onFavorite={() => toggleFavorite(item)}
+              onView={() => setViewing(item)}
               onDelete={() => deleteItem(item)}
               deleting={deletingId === item.id}
             />
           ))}
         </div>
+      )}
+
+      {viewing && publicImageUrl(viewing.image_path ?? viewing.thumb_path) && (
+        <ImageLightbox
+          src={publicImageUrl(viewing.image_path ?? viewing.thumb_path)}
+          alt={viewing.name}
+          onClose={() => setViewing(null)}
+        />
       )}
     </div>
   )

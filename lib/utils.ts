@@ -12,13 +12,6 @@ export function publicImageUrl(path: string | null | undefined) {
   return `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${path}`
 }
 
-export function formatPrice(value: number | string | null | undefined) {
-  if (value === null || value === undefined || value === '') return '—'
-  const n = Number(value)
-  if (!Number.isFinite(n) || n <= 0) return '—'
-  return `¥${n.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`
-}
-
 export function parseTags(input: string) {
   return Array.from(
     new Set(

@@ -13,15 +13,9 @@ create table if not exists public.clothes (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid not null default auth.uid() references auth.users (id) on delete cascade,
   name         text not null,
-  category     text not null default '其他'
-               check (category in ('上衣', '裤子', '外套', '裙装', '鞋靴', '配饰', '其他')),
-  season       text not null default '四季'
-               check (season in ('春', '夏', '秋', '冬', '四季')),
+  category     text not null default '其他',
+  seasons      text[] not null default '{四季}',
   color        text,
-  brand        text,
-  price        numeric(10, 2) check (price is null or price >= 0),
-  purchased_at date,
-  tags         text[] not null default '{}',
   notes        text,
   image_path   text,
   thumb_path   text,
@@ -29,8 +23,37 @@ create table if not exists public.clothes (
   created_at   timestamptz not null default now()
 );
 
--- 兼容旧库：为已存在的 clothes 表补充缩略图字段
+-- 兼容旧库：补充缩略图与多季节字段
 alter table public.clothes add column if not exists thumb_path text;
+alter table public.clothes add column if not exists seasons text[] not null default '{四季}';
+
+-- 旧库迁移：把单季节 season 转成 seasons 数组后删除旧列
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'clothes' and column_name = 'season'
+  ) then
+    execute 'update public.clothes set seasons = array[season] where season is not null';
+    execute 'alter table public.clothes drop column season';
+  end if;
+end $$;
+
+-- 已下线的字段：品牌 / 购买价格 / 购买日期 / 标签
+alter table public.clothes drop column if exists brand;
+alter table public.clothes drop column if exists price;
+alter table public.clothes drop column if exists purchased_at;
+alter table public.clothes drop column if exists tags;
+
+-- 约束：分类新增 背心 / 开衫
+alter table public.clothes drop constraint if exists clothes_category_check;
+alter table public.clothes add constraint clothes_category_check
+  check (category in ('上衣', '背心', '开衫', '裤子', '外套', '裙装', '鞋靴', '配饰', '其他'));
+
+-- 约束：季节取值合法（数组，可多选）
+alter table public.clothes drop constraint if exists clothes_seasons_check;
+alter table public.clothes add constraint clothes_seasons_check
+  check (seasons <@ array['春', '夏', '秋', '冬', '四季']::text[]);
 
 create index if not exists clothes_user_id_idx on public.clothes (user_id);
 create index if not exists clothes_category_idx on public.clothes (user_id, category);

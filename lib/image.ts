@@ -62,6 +62,9 @@ export async function makeThumbnail(source: Blob, maxSize = 400, quality = 0.8):
       return source
     }
 
+    // 透明背景（抠图结果）转 JPEG 时补白底，避免出现黑底
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     bitmap.close()
 

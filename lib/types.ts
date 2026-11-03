@@ -1,4 +1,13 @@
-export type Category = '上衣' | '裤子' | '外套' | '裙装' | '鞋靴' | '配饰' | '其他'
+export type Category =
+  | '上衣'
+  | '背心'
+  | '开衫'
+  | '裤子'
+  | '外套'
+  | '裙装'
+  | '鞋靴'
+  | '配饰'
+  | '其他'
 export type Season = '春' | '夏' | '秋' | '冬' | '四季'
 
 export interface Clothing {
@@ -6,12 +15,8 @@ export interface Clothing {
   user_id: string
   name: string
   category: Category
-  season: Season
+  seasons: Season[]
   color: string | null
-  brand: string | null
-  price: number | string | null
-  purchased_at: string | null
-  tags: string[]
   notes: string | null
   image_path: string | null
   thumb_path: string | null

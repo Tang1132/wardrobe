@@ -3,13 +3,22 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarCheck, Check, Loader2, Pencil, Plus, Shirt, Sparkles, Trash2, X } from 'lucide-react'
+import { CalendarCheck, Check, Loader2, Maximize2, Pencil, Plus, Shirt, Sparkles, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { OUTFIT_TAG_SUGGESTIONS } from '@/lib/constants'
 import { cn, parseTags, publicImageUrl, todayKey } from '@/lib/utils'
+import ImageLightbox from '@/components/ImageLightbox'
 import type { Clothing, OutfitWithItems } from '@/lib/types'
 
-function Collage({ items, large = false }: { items: Clothing[]; large?: boolean }) {
+function Collage({
+  items,
+  large = false,
+  onItemClick,
+}: {
+  items: Clothing[]
+  large?: boolean
+  onItemClick?: (item: Clothing) => void
+}) {
   const shown = items.slice(0, 4)
   const multiple = shown.length > 1
 
@@ -17,11 +26,12 @@ function Collage({ items, large = false }: { items: Clothing[]; large?: boolean 
     <div className={cn('relative grid gap-0.5 overflow-hidden bg-sand', multiple ? 'grid-cols-2' : 'grid-cols-1')}>
       {shown.map((item) => {
         const src = publicImageUrl(large ? item.image_path : (item.thumb_path ?? item.image_path))
-        return (
-          <div
-            key={item.id}
-            className={cn('relative overflow-hidden bg-sand', large ? 'aspect-[4/5]' : multiple ? 'aspect-square' : 'aspect-[4/3]')}
-          >
+        const className = cn(
+          'group/tile relative overflow-hidden bg-sand',
+          large ? 'aspect-[4/5]' : multiple ? 'aspect-square' : 'aspect-[4/3]',
+        )
+        const content = (
+          <>
             {src ? (
               <img src={src} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
             ) : (
@@ -29,6 +39,21 @@ function Collage({ items, large = false }: { items: Clothing[]; large?: boolean 
                 <Shirt size={large ? 32 : 22} />
               </div>
             )}
+            {onItemClick && src && (
+              <span className="absolute inset-0 grid place-items-center bg-ink/0 text-cream/0 transition group-hover/tile:bg-ink/25 group-hover/tile:text-cream">
+                <Maximize2 size={large ? 22 : 16} />
+              </span>
+            )}
+          </>
+        )
+
+        return onItemClick ? (
+          <button key={item.id} type="button" onClick={() => onItemClick(item)} className={className} aria-label={`查看${item.name}大图`}>
+            {content}
+          </button>
+        ) : (
+          <div key={item.id} className={className}>
+            {content}
           </div>
         )
       })}
@@ -62,6 +87,7 @@ export default function OutfitsClient({
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<OutfitWithItems | null>(null)
   const [preview, setPreview] = useState<OutfitWithItems | null>(null)
+  const [lightbox, setLightbox] = useState<Clothing | null>(null)
 
   const [name, setName] = useState('')
   const [tagsInput, setTagsInput] = useState('')
@@ -481,7 +507,7 @@ export default function OutfitsClient({
             </div>
 
             <div className="mt-4 overflow-hidden rounded-3xl">
-              <Collage items={preview.items} large />
+              <Collage items={preview.items} large onItemClick={setLightbox} />
             </div>
 
             {preview.tags.length > 0 && (
@@ -498,23 +524,30 @@ export default function OutfitsClient({
 
             <ul className="mt-4 divide-y divide-ink/5 overflow-hidden rounded-2xl bg-white/70">
               {preview.items.map((item) => (
-                <li key={item.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-sand">
-                    {(() => {
-                      const src = publicImageUrl(item.thumb_path ?? item.image_path)
-                      return src ? (
-                        <img src={src} alt={item.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="grid h-full place-items-center text-muted/40">
-                          <Shirt size={14} />
-                        </span>
-                      )
-                    })()}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm">{item.name}</span>
-                    <span className="block text-[11px] text-muted">{item.category}</span>
-                  </span>
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setLightbox(item)}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-sand/40"
+                  >
+                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-sand">
+                      {(() => {
+                        const src = publicImageUrl(item.thumb_path ?? item.image_path)
+                        return src ? (
+                          <img src={src} alt={item.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="grid h-full place-items-center text-muted/40">
+                            <Shirt size={14} />
+                          </span>
+                        )
+                      })()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm">{item.name}</span>
+                      <span className="block text-[11px] text-muted">{item.category}</span>
+                    </span>
+                    <Maximize2 size={13} className="shrink-0 text-muted/50" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -560,6 +593,14 @@ export default function OutfitsClient({
         <div className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-5 py-2.5 text-xs text-cream shadow-soft md:bottom-8">
           {toast}
         </div>
+      )}
+
+      {lightbox && publicImageUrl(lightbox.image_path ?? lightbox.thumb_path) && (
+        <ImageLightbox
+          src={publicImageUrl(lightbox.image_path ?? lightbox.thumb_path)}
+          alt={lightbox.name}
+          onClose={() => setLightbox(null)}
+        />
       )}
     </div>
   )

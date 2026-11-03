@@ -9,11 +9,10 @@ import {
   Layers,
   Loader2,
   Shirt,
-  Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES } from '@/lib/constants'
-import { cn, dateKey, formatPrice, pad2, todayKey } from '@/lib/utils'
+import { cn, dateKey, pad2, todayKey } from '@/lib/utils'
 import type { Clothing, WearLog } from '@/lib/types'
 
 interface OutfitOption {
@@ -72,8 +71,6 @@ export default function StatsClient({
     localLogs.forEach((log) => map.set(log.worn_on, log))
     return map
   }, [localLogs])
-
-  const totalValue = clothes.reduce((sum, item) => sum + (Number(item.price) || 0), 0)
 
   const categoryStats = useMemo(() => {
     const stats = CATEGORIES.map((category) => ({
@@ -185,9 +182,8 @@ export default function StatsClient({
         <p className="mt-1.5 text-sm text-muted">看看衣橱的构成，以及它被穿着的频率。</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
         <StatCard icon={Shirt} label="衣物总数" value={`${clothes.length}`} hint="件单品" />
-        <StatCard icon={Wallet} label="总花费" value={formatPrice(totalValue)} hint="累计购买金额" />
         <StatCard icon={Layers} label="搭配方案" value={`${outfits.length}`} hint="套已保存" />
         <StatCard icon={CalendarDays} label="穿着记录" value={`${localLogs.length}`} hint="天" />
       </div>
